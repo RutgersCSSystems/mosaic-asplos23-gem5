@@ -109,11 +109,11 @@ echo "-1" | sudo tee /proc/sys/kernel/perf_event_paranoid
 
 ## 3 Running Simulations
 ----------------------
-We use "test-scripts/run.sh," a reasonably automated script to run the
+We use "test-scripts/prun.sh," a reasonably automated script to run the
 simulations for different applications.
 
 ### 3.1 Setting the application to run
-To set, which applications to run, in the test-scripts/run.sh script, 
+To set, which applications to run, in the test-scripts/prun.sh script, 
 set the **WORKLOAD_NAME** parameter. 
 
 In the AE, as evaluated in the paper, we have included the sample applications: 
@@ -131,33 +131,23 @@ WORKLOAD_NAME=btree
 or
 WORKLOAD_NAME=gups
 ```
-### 3.2 Setting associativity number
-Mosaic and vanilla TLB designs can be run with different associativity using a list.
 
-To run with just one TLB associativity, set the "waylist" with just one value.
+### 3.2 Running gem5 simulator
 ```
-vim test-scripts/run.sh
-waylist=(2)
+test-scripts/prun.sh $ASSOCIATIVITY $TOCSIZE $TELNET_PORT
 ```
-For running with different associativity 
+For example,
 ```
-waylist=(2 4 8 "full")
-
+test-scripts/prun.sh 2 4 3160 //2 way associativity with TOC size of 4 and TELNET port at 3160
+test-scripts/prun.sh 1 16 3161 //direct-mapped associativity with TOC size of 16 and TELNET port at 3161
 ```
-### 3.3 Setting Mosaic's TOC size
-Similar to associativity, for Mosaic, we could also vary the TOC size in run.sh
+For full associativity, we just specify the number of ways as TLB size. 
+For example, if the TLB_SIZE=1024 (default) 
 ```
-toclist=(4)
-or
-toclist=(4 8 16 32 64)
+test-scripts/prun.sh 1024 16 3162
 ```
 
-### 3.4 Running gem5 simulator
-```
-test-scripts/run.sh
-```
-
-### 3.5 Optional: Setting the  port
+**Some notes:**
 To run an application inside a VM and begin the simulation, we need to login to
 the QEMU VM, run gem5's *m5 exit* inside the VM, followed by running an
 application (also inside the VM), and finally run *m5 exit* to signal the gem5
@@ -165,14 +155,44 @@ simulator in the host that an application has finished execution and it is time
 to stop the simulation.
 
 To avoid manually logging into a VM and running an application, we use telnet
-and a specific PORT number. If you don't want to use the default PORT number,
-set the PORT in test-scripts/run.sh
+and a specific PORT number. 
+
+### 3.3 To run multiple instances simultaneously
+exec test-scripts/prun.sh $ASSOCIATIVITY $TOCSIZE $TELNET_PORT &
 ```
-#Intializing TCP_PORT
-TCP_PORT=3460
+exec test-scripts/prun.sh 2 4 3160 &
+exec test-scripts/prun.sh 1 16 3161 &
+exec test-scripts/prun.sh 1024 16 3162 &
 ```
 
-### 3.6 Optional: Setting application parameter
+The above commands would generate an output in a format shown below:
+```
+----------------------------------------------------------
+RESULTS for WAYS 2 and TOC LEN 4
+----------------------------------------------------------
+Vanilla TLB miss rate:1.0784%
+Mosaic TLB miss rate:0.7186%
+----------------------------------------------------------
+RESULTS for WAYS 1 and TOC LEN 16
+----------------------------------------------------------
+Vanilla TLB miss rate:1.9189%
+Mosaic TLB miss rate:0.6355%
+----------------------------------------------------------
+RESULTS for WAYS 1024 and TOC LEN 16
+----------------------------------------------------------
+Vanilla TLB miss rate:0.7471%
+Mosaic TLB miss rate:0.6716%
+----------------------------------------------------------
+```
+
+
+### 3.3 Setting TLB size
+To change the default TLB size, in prun.sh, change the following:
+```
+TLB_SIZE=1024 => TLB_SIZE=1536
+```
+
+### 3.4 Optional: Setting application arguments
 For each application, we use a separate python script to input application
 parameters and run telnet. Once the *WORKLOAD_NAME* parameter is set, the
 script automatically chooses the application script using the workload name.
@@ -180,6 +200,8 @@ Only if one would like to modify the application input, the following python
 scripts need to be changed.
 ```
 gem5_client_hello.py
+gem5_client_graph500.py
+gem5_client_xsbench.py
 gem5_client_gups.py
 ```
 
