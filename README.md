@@ -41,7 +41,9 @@ cd ~/ssd
 ```
 
 ### 1.4 Now clone the repo
-
+```
+git clone https://github.com/RutgersCSSystems/mosaic-asplos23-gem5
+```
 
 ## 2. Compilation
 ------------------------
