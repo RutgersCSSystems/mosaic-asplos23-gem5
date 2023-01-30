@@ -81,6 +81,7 @@ directory. Some VMs might not have /bin/tcsh. So, we will manually
 copy to the VM disk file.
 ```
 test-scripts/mount_qemu.sh
+exit //exit from the VM image root
 ```
 ### 2.4 Copying applications and gem5 scripts to VM
 To copy all apps to the root folder inside the QEMU image, use the following
