@@ -4,7 +4,6 @@
 #variables
 BASE=$PWD
 GEM5_ORIGINAL_CLONE=$BASE
-
 #qemu disk location
 #do it manually
 QEMU_DISK=$BASE/iceberg.img
@@ -12,6 +11,14 @@ QEMU_DISK=$BASE/iceberg.img
 cd ../
 COPYDIR=$PWD
 cd $BASE
+
+if [ "$#" -ne 5 ]; then
+    echo "Illegal number of parameters. Check README"
+    echo "Format: test-scripts/prun.sh "appname" "associativity ways" "toc size" "tcp port" "large input?""
+    echo "example: test-scripts/prun.sh graph500 2 4 3160 0"
+    exit
+fi
+
 
 #gem5 parallel running directories
 GEM5_DIRECT=$COPYDIR/direct
@@ -23,41 +30,37 @@ GEM5_VANILLA=$COPYDIR/vanilla
 #dirs=("direct" "2way" "4way" "8way" "fully")
 
 #gem5 results directories
-#WORKLOAD_NAME=hello
-#WORKLOAD_NAME=gups
-WORKLOAD_NAME=graph500
-#WORKLOAD_NAME=xsbench
+#APPNAME=hello
+#APPNAME=gups
+#APPNAME=graph500
+#APPNAME=xsbench
+#APPNAME=btree
+#Intializing TCP_PORT 
+#TCP_PORT=3460
+
+#Iceberg TOC list
+#toclist=(8 16 32 64)
+APPNAME=$1
+WAYS=$2
+TOC=$3
+TCP_PORT=$4
+USE_LARGE_WORKLOAD=$5
+
 
 GEM5_RESULTS_DIR=result
 #gem5 cmd line args
 GEM5_MEM_SIZE=16384MB
-
 #TLB entry rows
 TLB_SIZE=1024
-
 #CPUS reserved for running QEMU VM
 NUM_CPUS=1
 
-
-#Iceberg TOC list
-#toclist=(8 16 32 64)
-WAYS=$1
-TOC=$2
-#Intializing TCP_PORT 
-#TCP_PORT=3460
-TCP_PORT=$3
-
-#Associativity ways list
-#WAYS=2
-#waylist=(2 4 8)
-#waylist=(2)
 #Some basic steps
 sudo chown $USER /dev/kvm
 
 GEM5_OPT_RENAME_EXT=$(basename $BASE)
 GEM5_OPT_NEW_NAME_ORIG=$GEM5_OPT_RENAME_EXT.opt
 GEM5_OPT_NEW_NAME=$GEM5_OPT_RENAME_EXT.opt
-
 #echo $GEM5_OPT_RENAME_EXT
 #echo $GEM5_OPT_NEW_NAME
 
@@ -102,7 +105,7 @@ move_stats_to_results_dir () {
     then
         RESULT_SUBDIR="${RESULT_SUBDIR}/toc${TOC_LEN}"
     fi
-    RESULT_LOCATION=$BASE/$GEM5_RESULTS_DIR/$WORKLOAD_NAME/$RESULT_SUBDIR
+    RESULT_LOCATION=$BASE/$GEM5_RESULTS_DIR/$APPNAME/$RESULT_SUBDIR
     #echo $RESULT_LOCATION
     if [ ! -d $RESULT_LOCATION ]
     then
@@ -113,7 +116,7 @@ move_stats_to_results_dir () {
     mv $STAT_FILE $RESULT_LOCATION
 }
 
-#function to check output file exist
+#function to check if output file exists and if so, terminate gem5
 check_tlblogs_exist () {
 
     FILE=$1/m5out/stats.txt	
@@ -127,7 +130,6 @@ check_tlblogs_exist () {
     if [ -f "$TLBRESULT" ]; then
 	    rm -rf $TLBRESULT
     fi
-
 
     while :
     do
@@ -186,21 +188,17 @@ run_single_iceberg_config() {
     #build gem5 command line
     GEM5_CMDLINE="$GEM5_OPT $FS_CONFIG_SCRIPT --kernel $LINUX_BINARY_LOCATION --disk-image $QEMU_DISK --cpu-type X86KvmCPU --command-line \"earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:22\" --caches --l2cache --mem-size $GEM5_MEM_SIZE --TCP_listening_port $4 --num-cpus $NUM_CPUS --tlb_num_entries $TLB_SIZE --tlb_set_associativity_L1 $TLB_SET_ASSOC --simulateIcebergTLB --toc_size $TOC_LEN"
 
-    #echo "check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 5 && python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $PORT) & sh -c "$GEM5_CMDLINE""
-    #run gem5 cmd
-    check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 5 && python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $PORT) & sh -c "$GEM5_CMDLINE" &> out.txt
-}
+    if [ "$USE_LARGE_WORKLOAD" -eq "1" ]; then
+   	INPUTSCRIPT=$BASE/test-scripts/gem5_client_large.py
+	echo "USING LARGE INPUT" > out.txt
+    else
+	INPUTSCRIPT=$BASE/test-scripts/gem5_client_tiny.py
+	echo "USING TINY INPUT" > out.txt
+    fi
 
-#venilla function
-run_single_vanilla_config() {
-    TLB_SET_ASSOC=$1
-    GEM5_OPT=$2/gem5-custom/build/X86/gem5.opt
-    FS_CONFIG_SCRIPT=$2/gem5-custom/configs/example/fs.py
-    LINUX_BINARY_LOCATION=$2/linux-4.17/vmlinux
-    #build gem5 command line
-    GEM5_CMDLINE="$GEM5_OPT $FS_CONFIG_SCRIPT --kernel $LINUX_BINARY_LOCATION --disk-image $QEMU_DISK --cpu-type X86KvmCPU --command-line \"earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda\" --caches --l2cache --mem-size $GEM5_MEM_SIZE --tlb_num_entries $TLB_SIZE --tlb_set_associativity_L1 $TLB_SET_ASSOC"
+    #echo "check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 5 && python3 $INPUTSCRIPT $PORT $APPNAME) & sh -c "$GEM5_CMDLINE""
     #run gem5 cmd
-    sh -c "$GEM5_CMDLINE"
+    check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 5 && python3 $INPUTSCRIPT $PORT $APPNAME) & sh -c "$GEM5_CMDLINE" &>> out.txt
 }
 
 create_exe_with_new_name() {
@@ -237,8 +235,6 @@ run_TLB_config() {
         GEM5_DIRECTORY=$GEM5_FULLY
     fi
 
-    #cd $GEM5_DIRECTORY
-
     #for TOC in ${toclist[@]}; do
 	GEM5_TOC_DIRECTORY=$GEM5_DIRECTORY"/TOC_$TOC"
 	#echo $GEM5_TOC_DIRECTORY
@@ -256,10 +252,18 @@ run_TLB_config $WAYS $NEW_PORT
 
 
 
-
-
-
-
+################### UNUSED FUNCTIONS############################################
+#vanilla function
+run_single_vanilla_config() {
+    TLB_SET_ASSOC=$1
+    GEM5_OPT=$2/gem5-custom/build/X86/gem5.opt
+    FS_CONFIG_SCRIPT=$2/gem5-custom/configs/example/fs.py
+    LINUX_BINARY_LOCATION=$2/linux-4.17/vmlinux
+    #build gem5 command line
+    GEM5_CMDLINE="$GEM5_OPT $FS_CONFIG_SCRIPT --kernel $LINUX_BINARY_LOCATION --disk-image $QEMU_DISK --cpu-type X86KvmCPU --command-line \"earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda\" --caches --l2cache --mem-size $GEM5_MEM_SIZE --tlb_num_entries $TLB_SIZE --tlb_set_associativity_L1 $TLB_SET_ASSOC"
+    #run gem5 cmd
+    sh -c "$GEM5_CMDLINE"
+}
 
 
 
@@ -273,7 +277,7 @@ for WAYS in ${waylist[@]}; do
 	#echo "run_TLB_config $WAYS $NEW_PORT"
 	run_TLB_config $WAYS $NEW_PORT 
 	#sleep 30
-        #python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $NEW_PORT &
+        #python3 $BASE/test-scripts/gem5_client_$APPNAME.py $NEW_PORT &
 	#let TCP_PORT=$NEW_PORT+1
 	#sleep 20
 done
