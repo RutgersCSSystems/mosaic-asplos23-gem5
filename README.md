@@ -3,14 +3,14 @@
 
 ## System Requirements for Gem5 full system simulation
 ----------------------------------------------------
-- A Linux system (possibly Debian distribution)
+- A Linux system (tested with Debian distribution)
 - 4 or more cores
 - At least 20GB of free RAM
 - 20-30GB disk for sequential runs and 100GB for parallel runs
 
 
-## 1. Setting  Gem5 Mosaic on CloudLab
---------------------------------------
+## 1. Setting  Gem5 Mosaic on CloudLab (Skip to 2 if not using CloudLab)
+-----------------------------------------------------------------------
 You have the option to run Gem5 Mosaic on CloudLab (which we used for
 development and experiments). If you do not want to use CloudLab, skip to 2.
 
@@ -47,6 +47,7 @@ git clone https://github.com/RutgersCSSystems/mosaic-asplos23-gem5
 
 ## 2. Compilation
 ------------------------
+All the package installations before compilation use debian distribution and "apt-get"  
 
 ### 2.1 Setting the environmental variables
 MAKE SURE to set the correct OS release by assigning the correct
