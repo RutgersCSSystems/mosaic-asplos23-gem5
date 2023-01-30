@@ -81,6 +81,8 @@ directory. Some VMs might not have /bin/tcsh. So, we will manually
 copy to the VM disk file.
 ```
 test-scripts/mount_qemu.sh
+sudo apt-get update
+sudo apt-get install build-essential g++
 exit //exit from the VM image root
 ```
 ### 2.4 Copying applications and gem5 scripts to VM
@@ -98,6 +100,7 @@ sudo cp -r apps/* $BASE/mountdir/
 issues. *We will make them configurable soon to avoid using a specific password.*
 
 ```
+test-scripts/mount_qemu.sh
 cd $BASE/mountdir
 sudo chroot .
 passwd
@@ -240,6 +243,17 @@ Vanilla TLB miss rate:0.6971%
 Mosaic TLB miss rate:0.6716%
 ```
 
+For large inputs (e.g., xsbench)
+```
+exec test-scripts/prun.sh xsbench 2 4 3160 1 &
+sleep 5
+exec test-scripts/prun.sh xsbench 4 4 3161 1 &
+sleep 5
+exec test-scripts/prun.sh xsbench 8 4 3162 1 &
+sleep 5
+exec test-scripts/prun.sh xsbench 1024 4 3163 1 &
+sleep 5
+```
 
 ### 3.5 Setting TLB size
 To change the default TLB size, in prun.sh, change the following:
