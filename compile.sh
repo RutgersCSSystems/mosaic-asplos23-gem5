@@ -12,7 +12,6 @@ cd $gem5_dir
 export NUM_CPU=$CORES
 /usr/bin/env python2 $(which scons)  -j $CORES --clean
 /usr/bin/env python2 $(which scons)  -j $CORES build/X86/gem5.opt
-exit
 
 
 cd $gem5_dir/util/term
