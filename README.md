@@ -17,18 +17,15 @@ development and experiments). If you do not want to use CloudLab, skip to 2.
 ## 1.1 Instantiating CloudLab nodes before cloning the repo 
 We run the gem5 simulation in CloubLab and use its fast NVMe storage to speed up full system simulation. We recommend users use the following profile to instantiate two CloudLab nodes.
 
-CloudLab profile: 2-NVMe-Nodes
-
-Instantiating this profile will launch NVMe-based nodes, where one could run multiple instances.
-
-We currently support Ubuntu-based 18.04 kernels, and all package installation scripts use Debian.
+**CloudLab profile:** You could use any CloudLab machine with Intel-based CPUs running Debian kernel version 18.04.
+**Recommended Instance Types:** We recommend using m510 nodes in UTAH datacenter that have fast NVMe storage and are generally available.
+You could also use a pre-created profile, "2-NVMe-Nodes," which will launch two NVMe-based nodes to run several parallel instances.
 
 ## 1.2 Partitioning an SSD and downloading the code.
-If you are using Mosaic gem5 in CloudLab, the root partition is only 16GB for
-some profiles. First, set up the CloudLab node with SSD and download the code
-on the SSD folder.
+If you are using CloudLab, the root partitions only has 16GB (for example: m510 instances). 
+First, set up the CloudLab node with SSD and download the code on the SSD folder.
 
-If you are using the 2-NVMe-Nodes profile, then the NVMe SSD with 256GB is in
+If you are using the m510 nodes (or 2-NVMe-Nodes profile), the NVMe SSD with 256GB is in
 "/dev/nvme0n1p4"
 
 ### 1.3 To partition an ext4 file system, use the following commands
@@ -50,7 +47,7 @@ git clone https://github.com/RutgersCSSystems/mosaic-asplos23-gem5
 All the package installations before compilation use debian distribution and "apt-get"  
 
 ### 2.1 Setting the environmental variables
-MAKE SURE to set the correct OS release by assigning the correct
+MAKE sure to set the correct OS release by assigning the correct
 OS_RELEASE_NAME. In Debian distributions, this can be extracted using "lsb_release -a"
 ```
 export OS_RELEASE_NAME="bionic"
@@ -92,8 +89,9 @@ required for letting the gem5 host for starting and stoping the simulation.
 ```
 $BASE/test-scripts/copyapps_qemu.sh
 (or)
-sudo cp -r apps/* $BASE/mountdir/
+sudo cp -r apps/\* $BASE/mountdir/
 ```
+
 ### 2.5 Setting the password for QEMU VM
 - Set the username for the VM to root
 - Set the VM image password to the letter "s". This is just a QEMU gem5 VM and will not cause any 
