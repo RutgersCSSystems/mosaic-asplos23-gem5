@@ -9,7 +9,7 @@
 - 20-30GB disk for sequential runs and 100GB for parallel runs
 
 
-## 1. Setting  Gem5 Mosaic on CloudLab (Skip to 2 if not using CloudLab)
+## (1.) Setting  Gem5 Mosaic on CloudLab (Skip to 2 if not using CloudLab)
 -----------------------------------------------------------------------
 You have the option to run Gem5 Mosaic on CloudLab (which we used for
 development and experiments). If you do not want to use CloudLab, skip to 2.
@@ -42,7 +42,7 @@ cd ~/ssd
 git clone https://github.com/RutgersCSSystems/mosaic-asplos23-gem5
 ```
 
-## 2. Compilation
+## (2.) Compilation
 ------------------------
 All the package installations before compilation use debian distribution and "apt-get"  
 
@@ -115,7 +115,7 @@ test-scripts/umount_qemu.sh
 echo "-1" | sudo tee /proc/sys/kernel/perf_event_paranoid
 ```
 
-## 3 Running Simulations
+## (3.) Running Simulations
 ----------------------
 We use "test-scripts/prun.sh," a reasonably automated script to run the
 simulations for different applications.
@@ -274,7 +274,7 @@ PID=`ps axf | grep Ways | grep -v grep | awk '{print $1}'`;kill -9 $PID
 PID=`ps axf | grep prun.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
 ```
 
-## 4. Result Generation
+## (4.) Result Generation
 -------------------
 In full system simulation, for each memory reference, we use a Vanilla TLB and
 a parallel Iceberg TLB to collect the TLB miss rate for both Vanilla and
