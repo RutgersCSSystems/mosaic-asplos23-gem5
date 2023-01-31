@@ -179,30 +179,10 @@ simulator in the host that an application has finished execution and it is time
 to stop the simulation.
 
 To avoid manually logging into a VM and running an application, we use telnet
-and a specific PORT number. 
+and a specific PORT number.
 
 
-### 3.2 Changing application parameters
-The inputs for tiny and large inputs for each application can be changed in the follow python scripts
-```
-$BASE/test-scripts/gem5_client_tiny.py
-$BASE/test-scripts/gem5_client_large.py
-```
-For example, to change the scale and the number of edges 
-of graph500 workloads, modify the following command in tiny or large python scripts
-```
-commands = [b"/m5 exit\r\n", b"/seq-list -s 4 -e 4\r\n", b"/m5 exit\r\n" ]
-```
-
-
-### 3.3 Forceful termination if required
-If you would like to terminate all scripts and gem5 simulation, one could use the following commands
-```
-PID=`ps axf | grep Ways | grep -v grep | awk '{print $1}'`;kill -9 $PID
-PID=`ps axf | grep prun.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
-```
-
-### 3.4 To run multiple instances simultaneously
+### 3.2 To run multiple instances simultaneously
 To run multiple instances in parallel, the instances could be run as background (interactive) tasks.
 Simply copy the block from each markdown file and paste it on the terminal for the long running jobs to begin.
 The number of jobs to launch depend on the number of cores, memory size, and available disk size.
@@ -273,6 +253,29 @@ To change the default TLB size, in prun.sh, change the following:
 ```
 TLB_SIZE=1024 => TLB_SIZE=1536
 ```
+
+
+
+### 3.3 Changing application parameters
+The inputs for tiny and large inputs for each application can be changed in the follow python scripts
+```
+$BASE/test-scripts/gem5_client_tiny.py
+$BASE/test-scripts/gem5_client_large.py
+```
+For example, to change the scale and the number of edges 
+of graph500 workloads, modify the following command in tiny or large python scripts
+```
+commands = [b"/m5 exit\r\n", b"/seq-list -s 4 -e 4\r\n", b"/m5 exit\r\n" ]
+```
+
+
+### 3.4 Forceful termination if required
+If you would like to terminate all scripts and gem5 simulation, one could use the following commands
+```
+PID=`ps axf | grep Ways | grep -v grep | awk '{print $1}'`;kill -9 $PID
+PID=`ps axf | grep prun.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
+```
+
 ## 4. Result Generation
 -------------------
 In full system simulation, for each memory reference, we use a Vanilla TLB and
