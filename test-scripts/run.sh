@@ -44,12 +44,11 @@ TCP_PORT=3460
 
 #Iceberg TOC list
 #toclist=(8 16 32 64)
-toclist=(4)
+#waylist=(2 4 8)
 
 #Associativity ways list
-WAYS=2
-waylist=(2 4 8)
-waylist=(2)
+WAYS=$1
+TOC=$2
 
 #Some basic steps
 sudo chown $USER /dev/kvm
@@ -121,10 +120,8 @@ move_stats_to_results_dir () {
         mkdir -p $RESULT_LOCATION
     fi
 
-    echo "Writing output to $RESULT_LOCATION"
+    echo "Writing and moving  output $STAT_FILE to $RESULT_LOCATION"
     mv $STAT_FILE $RESULT_LOCATION
-    #echo "mv $STAT_FILE $RESULT_LOCATION"
-
 }
 
 #function to check output file exist
@@ -157,8 +154,8 @@ check_tlblogs_exist () {
         	    #move tlblogs to result directory
             	   move_stats_to_results_dir $FILE $2 $3 $4
 		   move_stats_to_results_dir $TLBLOGS $2 $3 $4
-
-		   PID=`ps axf | grep run.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
+		   return		
+		   #PID=`ps axf | grep run.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
         	fi
 	fi		
         sleep 1
@@ -181,10 +178,11 @@ run_single_iceberg_config() {
 
     #build gem5 command line
     GEM5_CMDLINE="$GEM5_OPT $FS_CONFIG_SCRIPT --kernel $LINUX_BINARY_LOCATION --disk-image $QEMU_DISK --cpu-type X86KvmCPU --command-line \"earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:22\" --caches --l2cache --mem-size $GEM5_MEM_SIZE --TCP_listening_port $4 --num-cpus $NUM_CPUS --tlb_num_entries $TLB_SIZE --tlb_set_associativity_L1 $TLB_SET_ASSOC --simulateIcebergTLB --toc_size $TOC_LEN"
+    
 
-    echo "check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 5 && python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $PORT) & sh -c "$GEM5_CMDLINE""
+    echo "check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 20 && python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $PORT) & sh -c "$GEM5_CMDLINE""
     #run gem5 cmd
-    check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 5 && python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $PORT) & sh -c "$GEM5_CMDLINE" #&> out.txt
+    check_tlblogs_exist $TLBLOGS_LOCATION $1 1 $2 & ( sleep 20 && python3 $BASE/test-scripts/gem5_client_$WORKLOAD_NAME.py $PORT) & sh -c "$GEM5_CMDLINE" &> out.txt
 }
 
 #venilla function
@@ -216,7 +214,6 @@ create_exe_with_new_name() {
 run_TLB_config() {
 
     TLB_CONFIG=$1
-
     #run iceberg
     GEM5_DIRECTORY=$GEM5_DIRECT
 
@@ -234,83 +231,23 @@ run_TLB_config() {
         GEM5_DIRECTORY=$GEM5_FULLY
     fi
 
-    #Create a separate directory	
-    create_target_gem5_dirs $GEM5_DIRECTORY $$TLB_CONFIG
-
     cd $GEM5_DIRECTORY
 
-    for toc in ${toclist[@]}; do
-   	create_exe_with_new_name $1 $toc $GEM5_DIRECTORY
-        run_single_iceberg_config $1 $toc $GEM5_DIRECTORY $2
-    done
+    #for toc in ${toclist[@]}; do
 
-    #run_single_iceberg_config $1 4 $GEM5_DIRECTORY
-    #run vanilla
-    #GEM5_DIRECTORY=$GEM5_VANILLA
-    #run_single_vanilla_config $1 $GEM5_DIRECTORY
+	GEM5_TOC_DIRECTORY=$GEM5_DIRECTORY"/TOC_$TOC"
+
+	#Create a separate directory	
+    	create_target_gem5_dirs $GEM5_TOC_DIRECTORY $TLB_CONFIG $TOC
+
+	cd $GEM5_TOC_DIRECTORY
+    
+   	create_exe_with_new_name $1 $TOC $GEM5_TOC_DIRECTORY
+        run_single_iceberg_config $1 $TOC $GEM5_TOC_DIRECTORY $2
+    #done
 }
 
 #COMPILE
-#run_TLB_config $TLB_SIZE $TCP_PORT 
-#sleep 5
-
-
-for WAYS in ${waylist[@]}; do
-	run_TLB_config $WAYS $TCP_PORT
-done
-
-
-
-
-
-
-
-#start running multiple gem5 parallely
-#run_TLB_config 1 && run_TLB_config 2 && run_TLB_config 4 && run_TLB_config 8 && run_TLB_config $TLB_SIZE
-#run_TLB_config 4 $TCP_PORT
-
-#create directories and copy original to them
-create_target_dirs() {
-
-	if [ ! -d $GEM5_2WAY ]
-	then
-	    echo "creating 2way..."
-	    mkdir $GEM5_2WAY
-	    echo "copying to 2way..."
-	    cp -a $GEM5_ORIGINAL_CLONE/. $GEM5_2WAY
-	fi
-
-	if [ ! -d $GEM5_4WAY ]
-	then
-	    echo "creating 4way..."
-	    mkdir $GEM5_4WAY
-	    echo "copying to 4way..."
-	    cp -a $GEM5_ORIGINAL_CLONE/. $GEM5_4WAY
-	fi
-
-	if [ ! -d $GEM5_FULLY ]
-	then
-	    echo "creating fully..."
-	    mkdir $GEM5_FULLY
-	    echo "copying to fully..."
-	    cp -a $GEM5_ORIGINAL_CLONE/. $GEM5_FULLY
-	fi
-
-	if [ ! -d $GEM5_8WAY ]
-	then
-	    echo "creating 8way..."
-	    mkdir $GEM5_8WAY
-	    echo "copying to 8way..."
-	    cp -a $GEM5_ORIGINAL_CLONE/. $GEM5_8WAY
-	fi
-
-	if [ ! -d $GEM5_DIRECT ]
-	then
-	    echo "creating direct..."
-	    mkdir $GEM5_DIRECT
-	    echo "copying to direct..."
-	    cp -a $GEM5_ORIGINAL_CLONE/. $GEM5_DIRECT
-	fi
-}
-
-
+#for WAYS in ${waylist[@]}; do
+run_TLB_config $WAYS $TCP_PORT
+#done
