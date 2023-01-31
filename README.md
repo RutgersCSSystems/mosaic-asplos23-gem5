@@ -203,6 +203,18 @@ PID=`ps axf | grep prun.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
 ```
 
 ### 3.4 To run multiple instances simultaneously
+To run multiple instances in parallel, the instances could be run as background (interactive) tasks.
+Simply copy the block from each file and paste it on the terminal for the long running jobs to begin.
+
+```
+test-scripts/parallel-graph500.md
+test-scripts/parallel-btree.md
+test-scripts/parallel-xsbench.md
+test-scripts/parallel-gups.md
+```
+
+You could also do it manually as shown below (for tiny input):
+
 ```
 exec test-scripts/prun.sh $APPNAME $ASSOCIATIVITY $TOCSIZE $TELNET_PORT $USE_LARGE_INPUT &
 ```
