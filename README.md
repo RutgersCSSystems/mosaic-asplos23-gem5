@@ -1,13 +1,16 @@
+# Mosaic Gem5 Full System Simulation Instructions
 
-## System Requirements
----------------------
-- A Linux system (possibly Debian distribution)
+
+## System Requirements for Gem5 full system simulation
+----------------------------------------------------
+- A Linux system (tested with Debian distribution)
 - 4 or more cores
 - At least 20GB of free RAM
+- 20-30GB disk for sequential runs and 100GB for parallel runs
 
 
-## 1. Setting  Gem5 Mosaic on CloudLab
---------------------------------------
+## 1. Setting  Gem5 Mosaic on CloudLab (Skip to 2 if not using CloudLab)
+-----------------------------------------------------------------------
 You have the option to run Gem5 Mosaic on CloudLab (which we used for
 development and experiments). If you do not want to use CloudLab, skip to 2.
 
@@ -38,10 +41,13 @@ cd ~/ssd
 ```
 
 ### 1.4 Now clone the repo
-
+```
+git clone https://github.com/RutgersCSSystems/mosaic-asplos23-gem5
+```
 
 ## 2. Compilation
 ------------------------
+All the package installations before compilation use debian distribution and "apt-get"  
 
 ### 2.1 Setting the environmental variables
 MAKE SURE to set the correct OS release by assigning the correct
@@ -59,11 +65,11 @@ Feel free to use other kernel versions if required.
 ./compile.sh
 ```
 ## 2.2 QEMU image setup for gem5 full system simulation
-By default, the script creates a QEMU image size of 16GB. If you 
+By default, the script creates a QEMU image size of 10GB. If you 
 would like a larger image, in the image creation script added 
 below (create_qemu_img.sh), change the following line as needed. 
 ```
-qemu-img create $QEMU_IMG_FILE 16g
+qemu-img create $QEMU_IMG_FILE 10g
 ```
 ```
 ./create_qemu_img.sh
@@ -75,6 +81,9 @@ directory. Some VMs might not have /bin/tcsh. So, we will manually
 copy to the VM disk file.
 ```
 test-scripts/mount_qemu.sh
+sudo apt-get update
+sudo apt-get install build-essential g++
+exit //exit from the VM image root
 ```
 ### 2.4 Copying applications and gem5 scripts to VM
 To copy all apps to the root folder inside the QEMU image, use the following
@@ -86,11 +95,12 @@ $BASE/test-scripts/copyapps_qemu.sh
 sudo cp -r apps/* $BASE/mountdir/
 ```
 ### 2.5 Setting the password for QEMU VM
-Set the username for the VM to root and the password to the letter "s". This is
-just a QEMU gem5 VM and will not cause any issues. *We will make them
-configurable soon to avoid using a specific password.*
+- Set the username for the VM to root
+- Set the VM image password to the letter "s". This is just a QEMU gem5 VM and will not cause any 
+issues. *We will make them configurable soon to avoid using a specific password.*
 
 ```
+test-scripts/mount_qemu.sh
 cd $BASE/mountdir
 sudo chroot .
 passwd
@@ -112,39 +122,53 @@ echo "-1" | sudo tee /proc/sys/kernel/perf_event_paranoid
 We use "test-scripts/prun.sh," a reasonably automated script to run the
 simulations for different applications.
 
-### 3.1 Setting the application to run
-To set, which applications to run, in the test-scripts/prun.sh script, 
-set the **WORKLOAD_NAME** parameter. 
-
 In the AE, as evaluated in the paper, we have included the sample applications: 
-(1) hello, (2) graph500, (3) XSbench, (4) btree, or (5) gups
+(1) hello, (2) graph500, (3) xsbench, (4) btree, or (5) gups
 
-For example,
+We support two workloads: 
+(1) "tiny" input, with the smallest possible input to quickly check if everything works 
+( < 2 minutes for each application except gups and btree)
+(2) "large" input as used in the paper (could take several hours to days)
+
+
+### 3.1 Running gem5 simulator
 ```
-WORKLOAD_NAME=hello
-or
-WORKLOAD_NAME=graph500
-or
-WORKLOAD_NAME=xsbench
-or
-WORKLOAD_NAME=btree
-or
-WORKLOAD_NAME=gups
+test-scripts/prun.sh $APPNAME $ASSOCIATIVITY $TOCSIZE $TELNET_PORT $USE_LARGE_INPUT
+```
+**NOTE: For each WAYS and TOCSIZE configuration, a separate copy of the repo is generated along with the VM image, and the simulation is run from the copied folder. Please be mindful of the available disk and memory size.**
+
+#### Examples:
+To run graph500, xsbench, btree, gups sequentially (one after the other) with  2-way associativity with TOC size of 4 and TELNET port at 3160, with tiny inputs
+```
+test-scripts/prun.sh graph500 2 4 3160 0 
+sleep 5
+test-scripts/prun.sh xsbench 2 4 3160 0
+sleep 5
+test-scripts/prun.sh btree 2 4 3160 0
+sleep 5 
+test-scripts/prun.sh gups 2 4 3160 0
+sleep 5
+```
+To run all applications with large inputs
+```
+test-scripts/prun.sh graph500 2 4 3160 1
+sleep 5
+test-scripts/prun.sh xsbench 2 4 3160 1
+sleep 5
+test-scripts/prun.sh btree 2 4 3160 1
+sleep 5
+test-scripts/prun.sh gups 2 4 3160 1
 ```
 
-### 3.2 Running gem5 simulator
+To run btree, direct-mapped with TOC size of 4 and TELNET port at 3161, and use large inputs
 ```
-test-scripts/prun.sh $ASSOCIATIVITY $TOCSIZE $TELNET_PORT
+test-scripts/prun.sh btree 1 16 3161 1
 ```
-For example,
-```
-test-scripts/prun.sh 2 4 3160 //2 way associativity with TOC size of 4 and TELNET port at 3160
-test-scripts/prun.sh 1 16 3161 //direct-mapped associativity with TOC size of 16 and TELNET port at 3161
-```
+
 For full associativity, we just specify the number of ways as TLB size. 
 For example, if the TLB_SIZE=1024 (default) 
 ```
-test-scripts/prun.sh 1024 16 3162
+test-scripts/prun.sh graph500 1024 16 3162 0
 ```
 
 **Some notes:**
@@ -157,12 +181,42 @@ to stop the simulation.
 To avoid manually logging into a VM and running an application, we use telnet
 and a specific PORT number. 
 
-### 3.3 To run multiple instances simultaneously
-exec test-scripts/prun.sh $ASSOCIATIVITY $TOCSIZE $TELNET_PORT &
+
+### 3.2 Changing application parameters
+The inputs for tiny and large inputs for each application can be changed in the follow python scripts
 ```
-exec test-scripts/prun.sh 2 4 3160 &
-exec test-scripts/prun.sh 1 16 3161 &
-exec test-scripts/prun.sh 1024 16 3162 &
+$BASE/test-scripts/gem5_client_tiny.py
+$BASE/test-scripts/gem5_client_large.py
+```
+For example, to change the scale and the number of edges 
+of graph500 workloads, modify the following command in tiny or large python scripts
+```
+commands = [b"/m5 exit\r\n", b"/seq-list -s 4 -e 4\r\n", b"/m5 exit\r\n" ]
+```
+
+
+### 3.3 Forceful termination if required
+If you would like to terminate all scripts and gem5 simulation, one could use the following commands
+```
+PID=`ps axf | grep WAYS- | grep -v grep | awk '{print $1}'`;kill -9 $PID
+PID=`ps axf | grep prun.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
+```
+
+### 3.4 To run multiple instances simultaneously
+```
+exec test-scripts/prun.sh $APPNAME $ASSOCIATIVITY $TOCSIZE $TELNET_PORT $USE_LARGE_INPUT &
+```
+For example, the following lines run graph500 varying the associativity, keeping the TOC size constant. 
+Please make sure to use different port numbers.
+```
+exec test-scripts/prun.sh graph500 2 4 3160 0 &
+sleep 5
+exec test-scripts/prun.sh graph500 4 4 3161 0 &
+sleep 5
+exec test-scripts/prun.sh graph500 8 4 3162 0 &
+sleep 5
+exec test-scripts/prun.sh graph500 1024 4 3163 0 &
+sleep 5
 ```
 
 The above commands would generate an output in a format shown below:
@@ -170,44 +224,44 @@ The above commands would generate an output in a format shown below:
 ----------------------------------------------------------
 RESULTS for WAYS 2 and TOC LEN 4
 ----------------------------------------------------------
-Vanilla TLB miss rate:1.0784%
-Mosaic TLB miss rate:0.7186%
+Vanilla TLB miss rate:0.9288%
+Mosaic TLB miss rate:0.6426%
 ----------------------------------------------------------
-RESULTS for WAYS 1 and TOC LEN 16
+RESULTS for WAYS 4 and TOC LEN 4
 ----------------------------------------------------------
-Vanilla TLB miss rate:1.9189%
-Mosaic TLB miss rate:0.6355%
+Vanilla TLB miss rate:0.8835%
+Mosaic TLB miss rate:0.6312%
 ----------------------------------------------------------
-RESULTS for WAYS 1024 and TOC LEN 16
+RESULTS for WAYS 8 and TOC LEN 4
 ----------------------------------------------------------
-Vanilla TLB miss rate:0.7471%
+Vanilla TLB miss rate:0.9007%
+Mosaic TLB miss rate:0.6414%
+----------------------------------------------------------
+RESULTS for WAYS 1024 and TOC LEN 4
+----------------------------------------------------------
+Vanilla TLB miss rate:0.6971%
 Mosaic TLB miss rate:0.6716%
-----------------------------------------------------------
 ```
 
+For large inputs (e.g., xsbench)
+```
+exec test-scripts/prun.sh xsbench 2 4 3160 1 &
+sleep 5
+exec test-scripts/prun.sh xsbench 4 4 3161 1 &
+sleep 5
+exec test-scripts/prun.sh xsbench 8 4 3162 1 &
+sleep 5
+exec test-scripts/prun.sh xsbench 1024 4 3163 1 &
+sleep 5
+```
 
-### 3.3 Setting TLB size
+### 3.5 Setting TLB size
 To change the default TLB size, in prun.sh, change the following:
 ```
 TLB_SIZE=1024 => TLB_SIZE=1536
 ```
-
-### 3.4 Optional: Setting application arguments
-For each application, we use a separate python script to input application
-parameters and run telnet. Once the *WORKLOAD_NAME* parameter is set, the
-script automatically chooses the application script using the workload name.
-Only if one would like to modify the application input, the following python
-scripts need to be changed.
-```
-gem5_client_hello.py
-gem5_client_graph500.py
-gem5_client_xsbench.py
-gem5_client_gups.py
-```
-
 ## 4. Result Generation
 -------------------
-
 In full system simulation, for each memory reference, we use a Vanilla TLB and
 a parallel Iceberg TLB to collect the TLB miss rate for both Vanilla and
 Mosaic.

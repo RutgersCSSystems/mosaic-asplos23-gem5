@@ -250,10 +250,18 @@ run_TLB_config $WAYS $NEW_PORT
 
 
 
-
-
-
-
+################### UNUSED FUNCTIONS############################################
+#vanilla function
+run_single_vanilla_config() {
+    TLB_SET_ASSOC=$1
+    GEM5_OPT=$2/gem5-custom/build/X86/gem5.opt
+    FS_CONFIG_SCRIPT=$2/gem5-custom/configs/example/fs.py
+    LINUX_BINARY_LOCATION=$2/linux-4.17/vmlinux
+    #build gem5 command line
+    GEM5_CMDLINE="$GEM5_OPT $FS_CONFIG_SCRIPT --kernel $LINUX_BINARY_LOCATION --disk-image $QEMU_DISK --cpu-type X86KvmCPU --command-line \"earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda\" --caches --l2cache --mem-size $GEM5_MEM_SIZE --tlb_num_entries $TLB_SIZE --tlb_set_associativity_L1 $TLB_SET_ASSOC"
+    #run gem5 cmd
+    sh -c "$GEM5_CMDLINE"
+}
 
 
 

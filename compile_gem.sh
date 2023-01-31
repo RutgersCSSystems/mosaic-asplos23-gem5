@@ -5,11 +5,9 @@ cur_dir=$(pwd)
 gem5_dir=$GEM5DIR
 linux_kernel_dir=$KERN_SRC
 
-sudo apt-get update
 sudo apt-get install libpython-dev libpython-all-dev python-all-dev
 sudo apt-get install qemu-system
 sudo apt-get install scons
-
 
 #compile gem5
 cd $gem5_dir
@@ -25,10 +23,3 @@ sudo make install
 sudo install -o root -m 555 m5term /usr/local/bin
 #To connect to terminal
 #m5term localhost 3456
-
-#compile linux kernel
-cp $cur_dir/config $linux_kernel_dir/.config
-cd $linux_kernel_dir
-yes "" | make oldconfig
-make -j$CORES
-
