@@ -57,9 +57,8 @@ NUM_CPUS=1
 #Some basic steps
 sudo chown $USER /dev/kvm
 
-GEM5_OPT_RENAME_EXT=$(basename $BASE)
-GEM5_OPT_NEW_NAME_ORIG=$GEM5_OPT_RENAME_EXT.opt
-GEM5_OPT_NEW_NAME=$GEM5_OPT_RENAME_EXT.opt
+GEM5_OPT_NEW_NAME_ORIG="gem5.opt"
+GEM5_OPT_NEW_NAME="gem5.opt"
 
 #compile linux and gem5
 COMPILE() {
