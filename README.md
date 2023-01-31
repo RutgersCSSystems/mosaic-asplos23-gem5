@@ -198,7 +198,7 @@ commands = [b"/m5 exit\r\n", b"/seq-list -s 4 -e 4\r\n", b"/m5 exit\r\n" ]
 ### 3.3 Forceful termination if required
 If you would like to terminate all scripts and gem5 simulation, one could use the following commands
 ```
-PID=`ps axf | grep WAYS- | grep -v grep | awk '{print $1}'`;kill -9 $PID
+PID=`ps axf | grep Ways | grep -v grep | awk '{print $1}'`;kill -9 $PID
 PID=`ps axf | grep prun.sh | grep -v grep | awk '{print $1}'`;kill -9 $PID
 ```
 
