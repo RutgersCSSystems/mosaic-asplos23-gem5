@@ -89,7 +89,7 @@ required for letting the gem5 host for starting and stoping the simulation.
 ```
 $BASE/test-scripts/copyapps_qemu.sh
 (or)
-sudo cp -r apps/\* $BASE/mountdir/
+sudo cp -r apps/* $BASE/mountdir/
 ```
 
 ### 2.5 Setting the password for QEMU VM
